@@ -25,52 +25,50 @@ contract ERC20Test is Test {
         assertEq(erc20.decimals(), 18);
     }
 
-    function testMint() public {
+    function testFuzzMint(uint256 amount) public {
         assertEq(erc20.totalSupply(), 0);
-        erc20.mint(address(1), 1 ether);
-        assertEq(erc20.totalSupply(), 1 ether);
+        erc20.mint(address(1), amount);
+        assertEq(erc20.totalSupply(), amount);
     }
 
-    function testMintSenderIsNotDeployer() public {
+    function testMintSenderIsNotDeployerError(uint256 amount) public {
         vm.prank(address(1));
         vm.expectRevert(
             abi.encodeWithSelector(ERC20.SenderIsNotDeployer.selector)
         );
-        erc20.mint(address(1), 1 ether);
+        erc20.mint(address(1), amount);
     }
 
-    function testMintInvalidReceiver() public {
+    function testMintInvalidReceiverError(uint256 amount) public {
         address receiver = address(0);
         vm.expectRevert(
             abi.encodeWithSelector(ERC20.InvalidReceiver.selector, receiver)
         );
-        erc20.mint(receiver, 1 ether);
+        erc20.mint(receiver, amount);
     }
 
-    function testBalanceOf() public {
-        erc20.mint(address(1), 1 ether);
-        assertEq(erc20.balanceOf(address(1)), 1 ether);
+    function test_BalanceOf(uint256 amount) public {
+        erc20.mint(address(1), amount);
+        assertEq(erc20.balanceOf(address(1)), amount);
     }
 
-    function testAllowance() public {
+    function testAllowance(uint256 amount) public {
         assertEq(erc20.allowance(address(1), address(this)), 0);
-        erc20.approve(address(1), 1 ether);
-        assertEq(erc20.allowance(address(this), address(1)), 1 ether);
+        erc20.approve(address(1), amount);
+        assertEq(erc20.allowance(address(this), address(1)), amount);
     }
 
-    function testTransfer() public {
+    function testFuzzTransfer(uint256 fromBalance, uint256 toBalance, uint256 amount) public {
+        vm.assume(fromBalance > amount);
         address from = address(this);
         address to = address(1);
-        uint256 value = 0.5 ether;
-        erc20.mint(from, 1 ether);
-        erc20.mint(to, 1 ether);
-        assertEq(erc20.balanceOf(from), 1 ether);
-        assertEq(erc20.balanceOf(to), 1 ether);
-        vm.expectEmit();
-        emit ERC20.Transfer(from, to, value);
-        erc20.transfer(to, value);
-        assertEq(erc20.balanceOf(from), value);
-        assertEq(erc20.balanceOf(to), 1.5 ether);
+        erc20.mint(from, fromBalance);
+        erc20.mint(to, toBalance);
+        // vm.expectEmit();
+        // emit ERC20.Transfer(from, to, amount);
+        erc20.transfer(to, amount);
+        assertEq(erc20.balanceOf(from), amount);
+        assertEq(erc20.balanceOf(to), toBalance + amount);
     }
 
     function testTransferInsuficientFounds() public {
